@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat Application</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-... (the integrity hash)" crossorigin="anonymous" />
+</head>
+<body>
+
+  <style> 
+/* Reset some default styles for better appearance */
+body, h1, h2, h3, p, ul, li {
+  margin: 0;
+  padding: 0;
+}
+
+/* Center the shoutbox container on the page */
+/* Add styles for the shoutbox container */
+.shoutbox-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #2b2b2b; /* Dark background color */
+}
+
+/* Add styles for the shoutbox */
+.shoutbox {
+  background-color: #3a3a3a; /* Darker box color */
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  max-width: 800px;
+  width: 100%;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  color: #f5f5f5; /* Light text color */
+}
+
+.shoutbox-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.shoutbox-header h1 {
+  font-size: 24px;
+  color: #fff; /* White header text color */
+}
+
+.shoutbox-header h2 {
+  font-size: 16px;
+  color: #ccc; /* Lighter secondary text color */
+}
+
+.shoutbox-content {
+  display: flex;
+  flex-wrap: wrap; /* Allow the chat-log and online-users to wrap to the next line if needed */
+}
+
+/* Add styles for the Support Box header */
+.support-box {
+  background-color: #007bff; /* Chat icon color */
+  border-radius: 10px 10px 0 0;
+  color: #fff; /* Light text color */
+  text-align: center;
+  padding: 10px;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.support-box i {
+  margin-right: 10px;
+}
+
+.chat-log {
+  flex: 2; /* Make chat-log wider */
+  min-width: 300px; /* Set a minimum width to prevent it from becoming too narrow */
+  height: 400px;
+  overflow-y: auto;
+  word-wrap: break-word;
+  padding: 10px;
+  border-radius: 5px;
+  background-color: #2b2b2b; /* Darker background for chat log */
+}
+
+.chat-log ul {
+  list-style: none;
+}
+
+.chat-log li {
+  margin-bottom: 8px;
+}
+
+.online-users {
+  flex: 1; /* Make online-users thinner */
+  min-width: 150px; /* Set a minimum width to prevent it from becoming too narrow */
+  margin-left: 20px;
+  border-radius: 5px;
+  background-color: #2b2b2b; /* Darker background for online users */
+  padding: 10px;
+}
+
+
+.online-users h3 {
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: #fff; /* White header text color */
+}
+
+.online-users ul {
+  list-style: none;
+}
+
+.online-users li {
+  font-size: 14px;
+  margin-bottom: 5px;
+  color: #ccc; /* Lighter text color for online users */
+}
+
+.input-group {
+  display: flex;
+  margin-top: 20px;
+}
+
+#chat-input {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 5px 0 0 5px;
+  background-color: #333; /* Dark input field background */
+  color: #f5f5f5; /* Light input field text color */
+}
+
+#send-button {
+  background-color: #007bff;
+  border: none;
+  color: #fff;
+  border-radius: 0 5px 5px 0;
+  cursor: pointer;
+  padding: 10px;
+  transition: background-color 0.2s ease;
+}
+
+#send-button:hover {
+  background-color: #0056b3;
+}
+
+/* Adjust the icon size */
+.fa-paper-plane {
+  font-size: 20px;
+}
+  
+  </style>
+
+        <div class="shoutbox-container">
+          <div class="shoutbox">
+            <div class="support-box">
+              <i class="fas fa-comment"></i>
+              <span>Support Box</span> 
+            </div>
+            <div class="shoutbox-header">
+              
+              <h1>Shoutbox</h1>
+              <h2>Welcome, <span id="username"><%= username %></span>!</h2>
+            </div>
+      
+            <div class="shoutbox-content">
+              <div class="chat-log">
+                <ul id="messages"></ul>
+              </div>
+      
+              <div class="online-users">
+                <h3>Online Users:</h3>
+                <ul id="online-users"></ul>
+              </div>
+            </div>
+      
+            <form id="chat-form" class="input-group">
+              <input id="chat-input" type="text" placeholder="Type your message...">
+              <button type="submit" id="send-button">
+                <i class="fas fa-paper-plane"></i> 
+              </button>
+            </form>
+          </div>
+        </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    // Use the username passed from the server
+    const username = document.getElementById('username').innerText;
+    const onlineUsersContainer = document.getElementById('online-users');
+
+    // When the page loads, join the chat room with the username
+    socket.emit('join', username);
+
+  // Parse chatHistory JSON from the server-side
+  const chatHistory = JSON.parse(`<%- chatHistory %>`); // Use JSON.parse to convert the JSON string to a JavaScript object
+
+  // Display the chat history by looping through the chatHistory array
+  for (const message of chatHistory) {
+    const messageElement = document.createElement('li');
+    messageElement.textContent = `${message.timestamp} - ${message.username}: ${message.msg}`;
+    document.getElementById('messages').appendChild(messageElement);
+  }
+
+  // Update the online users list on the client side
+  const updateOnlineUsersList = (users) => {
+    onlineUsersContainer.innerHTML = '';
+    users.forEach((user) => {
+      const userElement = document.createElement('li');
+      userElement.textContent = user;
+      onlineUsersContainer.appendChild(userElement);
+    });
+  };
+
+// Handle updated online users list from the server
+socket.on('online users', (users) => {
+    updateOnlineUsersList(users);
+  });
+    // Handle user joined event
+    socket.on('user joined', (username) => {
+      const joinMessage = document.createElement('li');
+      joinMessage.textContent = `${username} joined the chat`;
+      document.getElementById('messages').appendChild(joinMessage);
+    });
+
+    // Handle user left event
+    socket.on('user left', (username) => {
+      const leaveMessage = document.createElement('li');
+      leaveMessage.textContent = `${username} left the chat`;
+      document.getElementById('messages').appendChild(leaveMessage);
+    });
+
+  // Handle incoming chat messages
+  socket.on('chat message', (data) => {
+    const messageElement = document.createElement('li');
+    messageElement.textContent = `${data.timestamp} - ${data.username} - ${data.msg}`;
+    document.getElementById('messages').appendChild(messageElement);
+  });
+
+
+// Handle form submission using AJAX
+document.getElementById('chat-form').addEventListener('submit', (event) => {
+  event.preventDefault(); // Prevent the default form submission behavior
+
+  // Get the message from the input field
+  const input = document.getElementById('chat-input');
+  const messageText = input.value.trim();
+
+  // Only proceed if the message is not empty
+  if (messageText !== '') {
+    const now = new Date(); // Get the current date and time
+    const message = {
+      username, // Use the authenticated username
+      msg: messageText,
+      timestamp: now.toISOString(), // Convert the date to ISO format (e.g., "2022-01-01T12:34:56.789Z")
+    };
+
+    // Send the chat message to the server using Socket.IO
+    socket.emit('chat message', message);
+
+    // Clear the input field
+    input.value = '';
+  }
+});
+
+  </script>
+</body>
+</html>
